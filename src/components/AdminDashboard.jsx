@@ -1,9 +1,9 @@
 import { useMemo, useState } from "react";
 import * as XLSX from "xlsx";
 import {
-  Activity, AlertTriangle, ArrowDownToLine, ArrowLeftRight, BarChart3, ClipboardList,
+  Activity, AlertTriangle, ArrowLeftRight, ClipboardList,
   FileSpreadsheet, LayoutDashboard, LogOut, Package, PackagePlus, Pencil, Pill,
-  Plus, Search, Settings, Trash2, TrendingDown, TrendingUp, Users, Upload
+  Plus, Search, Trash2, TrendingDown, Users, Upload
 } from "lucide-react";
 
 const menu = [
@@ -104,7 +104,15 @@ export default function AdminDashboard({ medicines, transactions, activities, on
         </>}
 
         {page === "medicines" && <section className="panel">
-          <div className="panel-heading"><div><h3>Manajemen Data Obat</h3><p>Tambah, ubah, dan hapus data inventaris.</p></div><button className="btn btn-primary" onClick={() => setForm({ id: `MED${String(Date.now()).slice(-5)}`, name: "", category: "Lainnya", form: "Tablet", unit: "Tablet", stock: 0, minStock: 5, description: "", function: "", storage: "", image: "" })}><Plus size={17}/> Tambah Obat</button></div>
+          <div className="panel-heading">
+            <div>
+              <h3>Manajemen Data Obat</h3>
+              <p>Tambah, ubah, dan hapus data inventaris.</p>
+            </div>
+            <button className="btn btn-primary" onClick={() => setForm({ id: `MED${Math.floor(1000 + Math.random() * 9000)}`, name: "", category: "Pereda Nyeri & Demam", form: "Tablet", unit: "Tablet", stock: 0, minStock: 5, description: "", function: "", storage: "", image: "" })}>
+              <Plus size={17}/> Tambah Obat
+            </button>
+          </div>
           <div className="search-box admin-search"><Search size={18}/><input value={query} onChange={e => setQuery(e.target.value)} placeholder="Cari nama atau ID obat..."/></div>
           <div className="table-wrap"><table><thead><tr><th>ID</th><th>Obat</th><th>Kategori</th><th>Stok</th><th>Min.</th><th>Aksi</th></tr></thead><tbody>
             {filtered.map(m => <tr key={m.id}><td>{m.id}</td><td><div className="table-medicine"><span className="mini-pill"><Pill size={16}/></span><b>{m.name}</b></div></td><td>{m.category}</td><td><span className={m.stock <= m.minStock ? "text-danger" : "text-success"}><b>{m.stock} {m.unit}</b></span></td><td>{m.minStock}</td><td><div className="table-actions"><button className="icon-action edit" title="Edit" onClick={() => setForm({...m})}><Pencil size={16}/></button><button className="icon-action delete" title="Hapus" onClick={() => removeMedicine(m)}><Trash2 size={16}/></button></div></td></tr>)}
@@ -128,31 +136,119 @@ export default function AdminDashboard({ medicines, transactions, activities, on
         {page === "activity" && <section className="panel"><div className="panel-heading"><div><h3>Log Aktivitas</h3><p>Aktivitas pengelolaan data pada perangkat ini.</p></div></div>{activities.length ? activities.map(a => <div className="activity-row" key={a.id}><Activity size={17}/><div><b>{a.message}</b><small>{new Date(a.date).toLocaleString("id-ID")}</small></div></div>) : <div className="empty-cell">Belum ada aktivitas admin.</div>}</section>}
       </main>
 
-      {form && <div className="modal-backdrop" onMouseDown={() => setForm(null)}><section className="modal admin-form-modal" onMouseDown={e => e.stopPropagation()}><div className="modal-header"><h2>{medicines.some(m => m.id === form.id) ? "Edit Obat" : "Tambah Obat"}</h2><button className="icon-btn" onClick={() => setForm(null)}>×</button></div><form className="form-stack" onSubmit={saveMedicine}>
-        <div className="form-two"><div><label>ID Obat</label><input value={form.id} onChange={e => setForm({...form,id:e.target.value})} required/></div><div><label>Nama Obat</label><input value={form.name} onChange={e => setForm({...form,name:e.target.value})} required/></div></div>
-        <div className="form-two"><div><label>Kategori</label><select value={form.category} onChange={e => setForm({...form,category:e.target.value})}>{["Analgesik","Vitamin","Antasida","Antibiotik","Rehidrasi","Lainnya"].map(x => <option key={x}>{x}</option>)}</select></div><div><label>Bentuk</label><input value={form.form} onChange={e => setForm({...form,form:e.target.value})}/></div></div>
-        <div className="form-three"><div><label>Satuan</label><input value={form.unit} onChange={e => setForm({...form,unit:e.target.value})}/></div><div><label>Stok</label><input type="number" min="0" value={form.stock} onChange={e => setForm({...form,stock:e.target.value})}/></div><div><label>Stok Minimum</label><input type="number" min="0" value={form.minStock} onChange={e => setForm({...form,minStock:e.target.value})}/></div></div>
-        
-        {/* Input Upload Gambar dari Folder Komputer */}
-        <label>Upload Gambar Obat</label>
-        <div className="upload-container" style={{ display: "flex", alignItems: "center", gap: "10px" }}>
-          <label className="btn btn-outline" style={{ cursor: "pointer", display: "inline-flex", alignItems: "center", gap: "6px" }}>
-            <Upload size={16}/> Pilih Berkas Gambar
-            <input type="file" accept="image/*" onChange={handleImageUpload} style={{ display: "none" }} />
-          </label>
-          {form.image && <span style={{ fontSize: "12px", color: "#10b981", fontWeight: "600" }}>✓ Gambar Terpilih</span>}
-        </div>
-        {form.image && (
-          <div style={{ marginTop: "8px" }}>
-            <img src={form.image} alt="Preview" style={{ width: "60px", height: "60px", objectFit: "cover", borderRadius: "8px", border: "1px solid #e2e8f0" }} />
-          </div>
-        )}
+      {form && (
+        <div className="modal-backdrop" onMouseDown={() => setForm(null)}>
+          <section className="modal admin-form-modal" onMouseDown={e => e.stopPropagation()}>
+            <div className="modal-header">
+              <h2>{medicines.some(m => m.id === form.id) ? "Edit Obat" : "Tambah Obat"}</h2>
+              <button className="icon-btn" onClick={() => setForm(null)}>×</button>
+            </div>
+            <form className="form-stack" onSubmit={saveMedicine}>
+              
+              {/* Baris 1: ID Obat Otomatis (ReadOnly) & Nama Obat */}
+              <div className="form-two">
+                <div>
+                  <label>ID Obat (Otomatis)</label>
+                  <input 
+                    value={form.id} 
+                    disabled 
+                    style={{ backgroundColor: "#f1f5f9", cursor: "not-allowed", color: "#64748b" }} 
+                  />
+                </div>
+                <div>
+                  <label>Nama Obat</label>
+                  <input value={form.name} onChange={e => setForm({...form, name: e.target.value})} placeholder="Contoh: Paracetamol 500mg" required/>
+                </div>
+              </div>
 
-        <label>Deskripsi</label><textarea rows="2" value={form.description} onChange={e => setForm({...form,description:e.target.value})}/>
-        <label>Fungsi / Informasi</label><textarea rows="2" value={form.function} onChange={e => setForm({...form,function:e.target.value})}/>
-        <label>Informasi Penyimpanan</label><textarea rows="2" value={form.storage} onChange={e => setForm({...form,storage:e.target.value})}/>
-        <button className="btn btn-primary btn-full" type="submit">Simpan Data Obat</button>
-      </form></section></div>}
+              {/* Baris 2: Kategori & Bentuk (Dropdown) */}
+              <div className="form-two">
+                <div>
+                  <label>Kategori</label>
+                  <select value={form.category} onChange={e => setForm({...form, category: e.target.value})}>
+                    {[
+                      "Pereda Nyeri & Demam", 
+                      "Flu & Batuk", 
+                      "Obat Lambung", 
+                      "Pencernaan & Diare", 
+                      "Vitamin & Suplemen", 
+                      "P3K & Obat Luar", 
+                      "Lainnya"
+                    ].map(x => <option key={x} value={x}>{x}</option>)}
+                  </select>
+                </div>
+                <div>
+                  <label>Bentuk</label>
+                  <select value={form.form} onChange={e => setForm({...form, form: e.target.value})}>
+                    {[
+                      "Tablet",
+                      "Kaplet",
+                      "Kapsul",
+                      "Sirup",
+                      "Salep / Krim",
+                      "Tetes Mata / Telinga",
+                      "Injeksi",
+                      "Supositoria",
+                      "Serbuk / Puyer",
+                      "Spray / Semprot",
+                      "Lainnya"
+                    ].map(x => <option key={x} value={x}>{x}</option>)}
+                  </select>
+                </div>
+              </div>
+
+              {/* Baris 3: Satuan Pengambilan (Dropdown), Stok, & Stok Minimum */}
+              <div className="form-three">
+                <div>
+                  <label>Satuan Pengambilan</label>
+                  <select value={form.unit} onChange={e => setForm({...form, unit: e.target.value})}>
+                    {[
+                      "Tablet",
+                      "Kaplet",
+                      "Kapsul",
+                      "Botol",
+                      "Strip",
+                      "Tube",
+                      "Ampul",
+                      "Sachet",
+                      "Box",
+                      "Pcs"
+                    ].map(x => <option key={x} value={x}>{x}</option>)}
+                  </select>
+                </div>
+                <div>
+                  <label>Stok</label>
+                  <input type="number" min="0" value={form.stock} onChange={e => setForm({...form, stock: e.target.value})}/>
+                </div>
+                <div>
+                  <label>Stok Minimum</label>
+                  <input type="number" min="0" value={form.minStock} onChange={e => setForm({...form, minStock: e.target.value})}/>
+                </div>
+              </div>
+
+              {/* Input Upload Gambar dari Folder Komputer */}
+              <label>Upload Gambar Obat</label>
+              <div className="upload-container" style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+                <label className="btn btn-outline" style={{ cursor: "pointer", display: "inline-flex", alignItems: "center", gap: "6px" }}>
+                  <Upload size={16}/> Pilih Berkas Gambar
+                  <input type="file" accept="image/*" onChange={handleImageUpload} style={{ display: "none" }} />
+                </label>
+                {form.image && <span style={{ fontSize: "12px", color: "#10b981", fontWeight: "600" }}>✓ Gambar Terpilih</span>}
+              </div>
+              {form.image && (
+                <div style={{ marginTop: "8px" }}>
+                  <img src={form.image} alt="Preview" style={{ width: "60px", height: "60px", objectFit: "cover", borderRadius: "8px", border: "1px solid #e2e8f0" }} />
+                </div>
+              )}
+
+              <label>Deskripsi</label><textarea rows="2" value={form.description} onChange={e => setForm({...form,description:e.target.value})}/>
+              <label>Fungsi / Informasi</label><textarea rows="2" value={form.function} onChange={e => setForm({...form,function:e.target.value})}/>
+              <label>Informasi Penyimpanan</label><textarea rows="2" value={form.storage} onChange={e => setForm({...form,storage:e.target.value})}/>
+              <button className="btn btn-primary btn-full" type="submit">Simpan Data Obat</button>
+            </form>
+          </section>
+        </div>
+      )}
 
       {stockForm && <div className="modal-backdrop" onMouseDown={() => setStockForm(null)}><section className="modal" onMouseDown={e => e.stopPropagation()}><div className="modal-header"><h2>Tambah Stok</h2><button className="icon-btn" onClick={() => setStockForm(null)}>×</button></div><form className="form-stack" onSubmit={e => {e.preventDefault(); const m = medicines.find(x => x.id === stockForm.medicineId); if (!m || Number(stockForm.quantity) < 1) return; onStockIn(m.id, Number(stockForm.quantity), stockForm.note); setStockForm(null);}}><label>Pilih Obat</label><select value={stockForm.medicineId} onChange={e => setStockForm({...stockForm,medicineId:e.target.value})}>{medicines.map(m => <option key={m.id} value={m.id}>{m.name} (stok {m.stock})</option>)}</select><label>Jumlah Stok Masuk</label><input type="number" min="1" value={stockForm.quantity} onChange={e => setStockForm({...stockForm,quantity:e.target.value})} required/><label>Keterangan</label><textarea value={stockForm.note} onChange={e => setStockForm({...stockForm,note:e.target.value})}/><button className="btn btn-primary btn-full">Simpan Stok Masuk</button></form></section></div>}
     </div>
