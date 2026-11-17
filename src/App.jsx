@@ -59,7 +59,7 @@ export default function App() {
     await supabase.from("activities").insert([newAct]);
   }
 
-  // Pencatatan Pengambilan Obat oleh User (Stok Keluar) - Diperbarui dengan Key Ganda
+  // Pencatatan Pengambilan Obat oleh User (Stok Keluar) dengan Error Handling Supabase
   async function recordTake(payload) {
     const medicine = medicines.find(m => m.id === selectedMedicine.id);
     if (!medicine || payload.quantity > medicine.stock) {
@@ -83,18 +83,40 @@ export default function App() {
       unit: medicine.unit,
       employee: payload.employee,
       department: payload.department,
-      note: payload.note,
+      note: payload.note || "Pengambilan mandiri",
       status: "Tercatat"
     };
 
+    // Update state lokal terlebih dahulu agar UI responsif
     setMedicines(updatedMedicines);
     setTransactions(prev => [...prev, transaction]);
     setSelectedMedicine(null);
     notify("Pengambilan obat berhasil dicatat.");
 
-    // Sinkronisasi ke Supabase
-    await supabase.from("medicines").update({ stock: newStock }).eq("id", medicine.id);
-    await supabase.from("transactions").insert([transaction]);
+    // Sinkronisasi ke database Supabase dengan penanganan error
+    try {
+      const { error: medError } = await supabase
+        .from("medicines")
+        .update({ stock: newStock })
+        .eq("id", medicine.id);
+
+      if (medError) {
+        console.error("Gagal memperbarui stok obat di Supabase:", medError);
+      }
+
+      const { error: trxError } = await supabase
+        .from("transactions")
+        .insert([transaction]);
+
+      if (trxError) {
+        console.error("Gagal menyimpan transaksi ke Supabase:", trxError);
+        alert("Peringatan: Transaksi tercatat lokal, tetapi gagal disimpan ke server cloud Supabase: " + trxError.message);
+      } else {
+        console.log("Transaksi berhasil disimpan ke Supabase!");
+      }
+    } catch (err) {
+      console.error("Kesalahan jaringan/koneksi saat menyimpan ke Supabase:", err);
+    }
   }
 
   // Update Data Obat oleh Admin (Tambah / Edit / Hapus)
@@ -117,7 +139,7 @@ export default function App() {
         function: m.function,
         storage: m.storage,
         image: m.image
-      });
+      }, { onConflict: 'id' });
     }
   }
 
@@ -141,7 +163,7 @@ export default function App() {
       unit: medicine.unit,
       employee: "Admin",
       department: "Gudang",
-      note,
+      note: note || "Stok masuk / restock",
       status: "Tercatat"
     };
 
@@ -152,8 +174,12 @@ export default function App() {
     notify("Stok masuk berhasil dicatat.");
 
     // Sinkronisasi ke Supabase
-    await supabase.from("medicines").update({ stock: newStock }).eq("id", medicineId);
-    await supabase.from("transactions").insert([transaction]);
+    try {
+      await supabase.from("medicines").update({ stock: newStock }).eq("id", medicineId);
+      await supabase.from("transactions").insert([transaction]);
+    } catch (err) {
+      console.error("Gagal sinkronisasi stok masuk ke Supabase:", err);
+    }
   }
 
   if (loading) {
