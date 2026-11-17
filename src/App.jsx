@@ -59,7 +59,7 @@ export default function App() {
     await supabase.from("activities").insert([newAct]);
   }
 
-  // Pencatatan Pengambilan Obat oleh User (Stok Keluar) dengan Error Handling Supabase
+  // Pencatatan Pengambilan Obat oleh User (Stok Keluar)
   async function recordTake(payload) {
     const medicine = medicines.find(m => m.id === selectedMedicine.id);
     if (!medicine || payload.quantity > medicine.stock) {
@@ -70,14 +70,12 @@ export default function App() {
     const newStock = Number(medicine.stock) - Number(payload.quantity);
     const updatedMedicines = medicines.map(m => m.id === medicine.id ? { ...m, stock: newStock } : m);
     
-    // Objek transaksi dengan properti lengkap (mendukung camelCase & snake_case)
+    // Objek transaksi disesuaikan menggunakan kolom snake_case standar database
     const transaction = {
       id: `TRX${Date.now().toString().slice(-6)}`,
       date: new Date().toISOString(),
       type: "Keluar",
-      medicineId: medicine.id,
       medicine_id: medicine.id,
-      medicineName: medicine.name,
       medicine_name: medicine.name,
       quantity: Number(payload.quantity),
       unit: medicine.unit,
@@ -155,9 +153,7 @@ export default function App() {
       id: `TRX${Date.now().toString().slice(-6)}`,
       date: new Date().toISOString(),
       type: "Masuk",
-      medicineId: medicineId,
       medicine_id: medicineId,
-      medicineName: medicine.name,
       medicine_name: medicine.name,
       quantity: Number(quantity),
       unit: medicine.unit,
