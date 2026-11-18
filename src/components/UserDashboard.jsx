@@ -3,13 +3,13 @@ import { History, Info, Search, ShieldCheck, Pill, HeartPulse, LayoutGrid } from
 
 const categories = [
   "Semua",
-  "Pereda Nyeri & Demam", // Pengganti Analgesik (cth: Paracetamol, Ibuprofen)
-  "Flu & Batuk",          // Sangat sering dicari di kantor (cth: Decolgen, OBH)
-  "Obat Lambung",         // Pengganti Antasida (cth: Promag, Mylanta, Polysilane)
-  "Pencernaan & Diare",   // Pengganti Rehidrasi (cth: Oralit, Diatabs, Norit)
-  "Vitamin & Suplemen",   // Untuk daya tahan tubuh (cth: Vitamin C, Enervon-C)
-  "P3K & Obat Luar",      // Sangat penting di kantor (cth: Betadine, Plester, Minyak Kayu Putih)
-  "Lainnya"               // Untuk obat alergi, obat tetes mata, dll.
+  "Pereda Nyeri & Demam",
+  "Flu & Batuk",
+  "Obat Lambung",
+  "Pencernaan & Diare",
+  "Vitamin & Suplemen",
+  "P3K & Obat Luar",
+  "Lainnya"
 ];
 
 export default function UserDashboard({ medicines, transactions, onSelectMedicine, onAdmin }) {
@@ -50,10 +50,18 @@ export default function UserDashboard({ medicines, transactions, onSelectMedicin
           <div className="category-row">{categories.map(c => <button key={c} className={`category-chip ${category === c ? "active" : ""}`} onClick={() => setCategory(c)}>{c === "Semua" && <LayoutGrid size={15}/>} {c}</button>)}</div>
           <div className="section-heading"><div><h2><Pill size={23}/> Daftar Obat</h2><p>Pilih obat untuk melihat informasi dan mencatat pengambilan.</p></div></div>
           <div className="medicine-grid">
-            {filtered.map(m => <article className="medicine-card" key={m.id}>
-              <div className="medicine-photo">{m.image ? <img src={m.image} alt={m.name} onError={e => { e.currentTarget.style.display = "none"; }}/> : <Pill size={55}/>}<span className={`stock-badge ${m.stock <= m.minStock ? "low" : ""}`}>Stok: {m.stock}</span></div>
-              <div className="medicine-card-body"><h3>{m.name}</h3><p>{m.form} · {m.category}</p><button className="btn btn-primary btn-full" onClick={() => onSelectMedicine(m)}><Info size={16}/> Lihat Detail</button></div>
-            </article>)}
+            {filtered.map(m => {
+              const minLimit = m.minStock ?? m.min_stock ?? 5;
+              return (
+                <article className="medicine-card" key={m.id}>
+                  <div className="medicine-photo" style={{ display: "flex", alignItems: "center", justifyContent: "center", overflow: "hidden", height: "190px", position: "relative", backgroundColor: "#f8fafc" }}>
+                    {m.image ? <img src={m.image} alt={m.name} style={{ width: "100%", height: "100%", objectFit: "cover" }} onError={e => { e.currentTarget.style.display = "none"; }}/> : <Pill size={55}/>}
+                    <span className={`stock-badge ${m.stock <= minLimit ? "low" : ""}`}>Stok: {m.stock}</span>
+                  </div>
+                  <div className="medicine-card-body"><h3>{m.name}</h3><p>{m.form} · {m.category}</p><button className="btn btn-primary btn-full" onClick={() => onSelectMedicine(m)}><Info size={16}/> Lihat Detail</button></div>
+                </article>
+              );
+            })}
           </div>
           {!filtered.length && <div className="empty-state"><Pill size={34}/><b>Obat tidak ditemukan</b><span>Coba kata kunci atau kategori lain.</span></div>}
         </main>
