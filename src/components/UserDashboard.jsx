@@ -41,7 +41,7 @@ export default function UserDashboard({ medicines, transactions, onSelectMedicin
         <section className="content-section">
           <div className="section-heading"><div><h2><History size={22}/> Riwayat Pengambilan</h2><p>Daftar transaksi pengambilan obat yang tercatat.</p></div><button className="btn btn-outline" onClick={() => setShowHistory(false)}>Kembali ke Katalog</button></div>
           <div className="table-wrap"><table><thead><tr><th>Tanggal</th><th>Nama Pengambil</th><th>Divisi</th><th>Obat</th><th>Jumlah</th></tr></thead><tbody>
-            {transactions.length ? transactions.slice().reverse().map(t => <tr key={t.id}><td>{new Date(t.date).toLocaleString("id-ID")}</td><td>{t.employee}</td><td>{t.department}</td><td>{t.medicineName}</td><td>{t.quantity} {t.unit}</td></tr>) : <tr><td colSpan="5" className="empty-cell">Belum ada transaksi pengambilan.</td></tr>}
+            {transactions.length ? transactions.slice().reverse().map(t => <tr key={t.id}><td>{new Date(t.date).toLocaleString("id-ID")}</td><td>{t.employee}</td><td>{t.department}</td><td>{t.medicineName || t.medicine_name || "—"}</td><td>{t.quantity} {t.unit}</td></tr>) : <tr><td colSpan="5" className="empty-cell">Belum ada transaksi pengambilan.</td></tr>}
           </tbody></table></div>
         </section>
       ) : (
