@@ -25,7 +25,7 @@ export default function AdminDashboard({ medicines, transactions, activities, on
   const [period, setPeriod] = useState("all");
 
   const totalStock = medicines.reduce((sum, m) => sum + Number(m.stock || 0), 0);
-  const lowStock = medicines.filter(m => m.stock <= m.minStock).length;
+  const lowStock = medicines.filter(m => m.stock <= (m.minStock ?? m.min_stock ?? 5)).length;
   const filtered = useMemo(() => medicines.filter(m => m.name.toLowerCase().includes(query.toLowerCase()) || m.id.toLowerCase().includes(query.toLowerCase())), [medicines, query]);
 
   // Fungsi untuk menangani file upload gambar dari folder lokal
@@ -41,7 +41,11 @@ export default function AdminDashboard({ medicines, transactions, activities, on
 
   function saveMedicine(e) {
     e.preventDefault();
-    const item = { ...form, stock: Number(form.stock), minStock: Number(form.minStock) };
+    const item = { 
+      ...form, 
+      stock: Number(form.stock), 
+      minStock: Number(form.minStock ?? form.min_stock ?? 5) 
+    };
     if (!item.name.trim() || item.stock < 0 || item.minStock < 0) return;
     const exists = medicines.some(m => m.id === item.id);
     onSaveMedicines(exists ? medicines.map(m => m.id === item.id ? item : m) : [...medicines, item]);
@@ -56,8 +60,25 @@ export default function AdminDashboard({ medicines, transactions, activities, on
 
   function exportExcel() {
     const wb = XLSX.utils.book_new();
-    const medicineRows = medicines.map(({ id, name, category, form, unit, stock, minStock }) => ({ ID: id, "Nama Obat": name, Kategori: category, Bentuk: form, Satuan: unit, Stok: stock, "Batas Minimum": minStock }));
-    const trxRows = transactions.map(t => ({ "ID Transaksi": t.id, Tanggal: new Date(t.date).toLocaleString("id-ID"), "Nama Pengambil": t.employee, Divisi: t.department, "Nama Obat": t.medicineName, Jumlah: t.quantity, Satuan: t.unit, Keterangan: t.note || "" }));
+    const medicineRows = medicines.map(m => ({ 
+      ID: m.id, 
+      "Nama Obat": m.name, 
+      Kategori: m.category, 
+      Bentuk: m.form, 
+      Satuan: m.unit, 
+      Stok: m.stock, 
+      "Batas Minimum": m.minStock ?? m.min_stock ?? 5 
+    }));
+    const trxRows = transactions.map(t => ({ 
+      "ID Transaksi": t.id, 
+      Tanggal: new Date(t.date).toLocaleString("id-ID"), 
+      "Nama Pengambil": t.employee, 
+      Divisi: t.department, 
+      "Nama Obat": t.medicineName || t.medicine_name, 
+      Jumlah: t.quantity, 
+      Satuan: t.unit, 
+      Keterangan: t.note || "" 
+    }));
     XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(medicineRows), "Data Obat");
     XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(trxRows), "Transaksi");
     XLSX.writeFile(wb, `Laporan_HCKLINIK_${new Date().toISOString().slice(0,10)}.xlsx`);
@@ -95,10 +116,18 @@ export default function AdminDashboard({ medicines, transactions, activities, on
           </div>
           <div className="admin-panels">
             <section className="panel"><div className="panel-heading"><div><h3>Stok Obat</h3><p>Ringkasan stok terkini</p></div><button className="btn btn-outline btn-small" onClick={() => setPage("medicines")}>Kelola Obat</button></div>
-              {medicines.slice(0,6).map(m => <div className="stock-line" key={m.id}><div><b>{m.name}</b><small>{m.id} · {m.category}</small></div><div className="stock-line-value"><b>{m.stock}</b><span className={m.stock <= m.minStock ? "text-danger" : "text-success"}>{m.stock <= m.minStock ? "Menipis" : "Tersedia"}</span></div></div>)}
+              {medicines.slice(0,6).map(m => {
+                const minLimit = m.minStock ?? m.min_stock ?? 5;
+                return (
+                  <div className="stock-line" key={m.id}>
+                    <div><b>{m.name}</b><small>{m.id} · {m.category}</small></div>
+                    <div className="stock-line-value"><b>{m.stock}</b><span className={m.stock <= minLimit ? "text-danger" : "text-success"}>{m.stock <= minLimit ? "Menipis" : "Tersedia"}</span></div>
+                  </div>
+                );
+              })}
             </section>
             <section className="panel"><div className="panel-heading"><div><h3>Transaksi Terbaru</h3><p>Aktivitas pengambilan obat</p></div><button className="btn btn-outline btn-small" onClick={() => setPage("outgoing")}>Lihat Semua</button></div>
-              {transactions.length ? transactions.slice(-5).reverse().map(t => <div className="transaction-line" key={t.id}><span className="transaction-icon"><TrendingDown size={17}/></span><div><b>{t.employee} · {t.medicineName}</b><small>{t.department} · {new Date(t.date).toLocaleString("id-ID")}</small></div><strong>-{t.quantity}</strong></div>) : <div className="empty-cell">Belum ada transaksi.</div>}
+              {transactions.length ? transactions.slice(-5).reverse().map(t => <div className="transaction-line" key={t.id}><span className="transaction-icon"><TrendingDown size={17}/></span><div><b>{t.employee} · {t.medicineName || t.medicine_name}</b><small>{t.department} · {new Date(t.date).toLocaleString("id-ID")}</small></div><strong>-{t.quantity}</strong></div>) : <div className="empty-cell">Belum ada transaksi.</div>}
             </section>
           </div>
         </>}
@@ -115,7 +144,19 @@ export default function AdminDashboard({ medicines, transactions, activities, on
           </div>
           <div className="search-box admin-search"><Search size={18}/><input value={query} onChange={e => setQuery(e.target.value)} placeholder="Cari nama atau ID obat..."/></div>
           <div className="table-wrap"><table><thead><tr><th>ID</th><th>Obat</th><th>Kategori</th><th>Stok</th><th>Min.</th><th>Aksi</th></tr></thead><tbody>
-            {filtered.map(m => <tr key={m.id}><td>{m.id}</td><td><div className="table-medicine"><span className="mini-pill"><Pill size={16}/></span><b>{m.name}</b></div></td><td>{m.category}</td><td><span className={m.stock <= m.minStock ? "text-danger" : "text-success"}><b>{m.stock} {m.unit}</b></span></td><td>{m.minStock}</td><td><div className="table-actions"><button className="icon-action edit" title="Edit" onClick={() => setForm({...m})}><Pencil size={16}/></button><button className="icon-action delete" title="Hapus" onClick={() => removeMedicine(m)}><Trash2 size={16}/></button></div></td></tr>)}
+            {filtered.map(m => {
+              const minLimit = m.minStock ?? m.min_stock ?? 5;
+              return (
+                <tr key={m.id}>
+                  <td>{m.id}</td>
+                  <td><div className="table-medicine"><span className="mini-pill"><Pill size={16}/></span><b>{m.name}</b></div></td>
+                  <td>{m.category}</td>
+                  <td><span className={m.stock <= minLimit ? "text-danger" : "text-success"}><b>{m.stock} {m.unit}</b></span></td>
+                  <td>{minLimit}</td>
+                  <td><div className="table-actions"><button className="icon-action edit" title="Edit" onClick={() => setForm({...m, minStock: minLimit})}><Pencil size={16}/></button><button className="icon-action delete" title="Hapus" onClick={() => removeMedicine(m)}><Trash2 size={16}/></button></div></td>
+                </tr>
+              );
+            })}
             {!filtered.length && <tr><td colSpan="6" className="empty-cell">Data obat tidak ditemukan.</td></tr>}
           </tbody></table></div>
         </section>}
@@ -222,7 +263,7 @@ export default function AdminDashboard({ medicines, transactions, activities, on
                 </div>
                 <div>
                   <label>Stok Minimum</label>
-                  <input type="number" min="0" value={form.minStock} onChange={e => setForm({...form, minStock: e.target.value})}/>
+                  <input type="number" min="0" value={form.minStock ?? form.min_stock ?? 5} onChange={e => setForm({...form, minStock: e.target.value})}/>
                 </div>
               </div>
 
@@ -260,6 +301,6 @@ function Stat({ icon, value, label, tone }) {
 }
 function TransactionTable({ transactions }) {
   return <div className="table-wrap"><table><thead><tr><th>Tanggal</th><th>Jenis</th><th>Nama Pengambil / Sumber</th><th>Divisi</th><th>Obat</th><th>Jumlah</th><th>Keterangan</th></tr></thead><tbody>
-    {transactions.length ? transactions.slice().reverse().map(t => <tr key={t.id}><td>{new Date(t.date).toLocaleString("id-ID")}</td><td><span className={`type-pill ${t.type === "Masuk" ? "incoming" : "outgoing"}`}>{t.type || "Keluar"}</span></td><td>{t.employee || "Admin"}</td><td>{t.department || "—"}</td><td>{t.medicineName}</td><td>{t.quantity} {t.unit}</td><td>{t.note || "—"}</td></tr>) : <tr><td colSpan="7" className="empty-cell">Belum ada data transaksi.</td></tr>}
+    {transactions.length ? transactions.slice().reverse().map(t => <tr key={t.id}><td>{new Date(t.date).toLocaleString("id-ID")}</td><td><span className={`type-pill ${t.type === "Masuk" ? "incoming" : "outgoing"}`}>{t.type || "Keluar"}</span></td><td>{t.employee || "Admin"}</td><td>{t.department || "—"}</td><td>{t.medicineName || t.medicine_name}</td><td>{t.quantity} {t.unit}</td><td>{t.note || "—"}</td></tr>) : <tr><td colSpan="7" className="empty-cell">Belum ada data transaksi.</td></tr>}
   </tbody></table></div>;
 }
