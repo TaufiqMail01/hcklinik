@@ -23,8 +23,10 @@ export default function DrugDetailModal({ medicine, onClose, onTake }) {
         <header className="modal-header"><h2><Pill size={21}/> Detail & Pengambilan Obat</h2><button className="icon-btn" onClick={onClose}><X/></button></header>
         <div className="detail-grid">
           <div className="detail-product">
-            <div className="detail-image">{medicine.image ? <img src={medicine.image} alt={medicine.name}/> : <Pill size={60}/>}</div>
-            <span className={`stock-badge ${medicine.stock <= medicine.minStock ? "low" : ""}`}>Stok tersedia: {medicine.stock} {medicine.unit}</span>
+            <div className="detail-image" style={{ display: "flex", alignItems: "center", justifyContent: "center", overflow: "hidden", height: "190px" }}>
+              {medicine.image ? <img src={medicine.image} alt={medicine.name} style={{ maxWidth: "100%", maxHeight: "100%", objectFit: "contain" }}/> : <Pill size={60}/>}
+            </div>
+            <span className={`stock-badge ${medicine.stock <= (medicine.minStock ?? medicine.min_stock ?? 5) ? "low" : ""}`}>Stok tersedia: {medicine.stock} {medicine.unit}</span>
             <h2>{medicine.name}</h2>
             <p className="muted">{medicine.id} · {medicine.category} · {medicine.form}</p>
             <div className="detail-copy"><h4><Info size={16}/> Deskripsi</h4><p>{medicine.description || "Belum ada deskripsi."}</p></div>
