@@ -107,8 +107,8 @@ export default function App() {
         .insert([transaction]);
 
       if (trxError) {
-        console.error("Gagal menyimpan transaksi ke Supabase:", trxError);
-        alert("Peringatan: Transaksi tercatat lokal, tetapi gagal disimpan ke server cloud Supabase: " + trxError.message);
+        console.error("DETAIL ERROR SUPABASE:", JSON.stringify(trxError, null, 2));
+        alert("Gagal Supabase: " + trxError.message + " (Detail di Console F12)");
       } else {
         console.log("Transaksi berhasil disimpan ke Supabase!");
       }
